@@ -1,0 +1,29 @@
+pipeline:
+  label: example
+  estimator: Pipeline
+  estimator_pkg: sklearn.pipeline
+  estimator_params:
+    steps:
+      - label: union
+        estimator: FeatureUnion
+        estimator_pkg: sklearn.pipeline
+        estimator_params:
+          n_jobs: 1
+          transformer_list: 
+            - label: count words
+              estimator: CountVectorizer
+              estimator_pkg: sklearn.feature_extraction.text
+              estimator_params:
+                max_features: 100
+            - label: count 3grams tfidf
+              estimator: TfidfVectorizer
+              estimator_pkg: sklearn.feature_extraction.text
+              estimator_params:
+                analyzer: char
+                ngram_range: [3, 3]
+      - label: svm
+        estimator: LinearSVC
+        estimator_pkg: sklearn.svm
+        estimator_params:
+        # if no parameters need to be passed, we needn't specify the key
+        # estimator_params - it is populated with an empty dictionary
