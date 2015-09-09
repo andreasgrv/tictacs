@@ -18,10 +18,10 @@ The pipeline creation is based on the the abstraction mechanism used in sklearn 
 
 ## Installation
 
-> git clone https://github.com/andreasgrv/tictacs
-> cd tictacs
-> pip install -r requirements.txt
-> pip install --user -e .
+- git clone https://github.com/andreasgrv/tictacs
+- cd tictacs
+- pip install -r requirements.txt
+- pip install --user -e .
 
 ## Examples
 
