@@ -89,7 +89,10 @@ def parse_pipe(yaml_dict, depth=0):
                          'mandatory key value pairs: %s'
                          % (depth, key_values))
     # if dict has no estimator params - suppose an empty list
-    params = yaml_dict[ESTIMATOR_PARAMS]
+    try:
+        params = yaml_dict[ESTIMATOR_PARAMS]
+    except KeyError:
+        params = dict()
     deeper = parse_params(params)
     if deeper is not None:
         label, deeper_estimators = deeper
