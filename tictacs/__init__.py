@@ -211,10 +211,8 @@ class Tictac(object):
         # otherwise we suppose it is a method that processes the input vector
         # and we wrap it in a class that calls the method on transform
         else:
-            print('creating functionwrapper')
             estimator_instance = FunctionWrapper(est, **params)
         # if params is None we have passed no options
-        print('adding %s' % label)
         # remember it - one instance for each label
         # TODO add redefinition errors when there exist
         # different estimators with same label
