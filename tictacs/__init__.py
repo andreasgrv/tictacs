@@ -44,7 +44,7 @@ def parse_params(param_dict):
         All others are handled as simple estimators, that don't have
         further nested estimators inside them.
     :param_dict: A dictionary containing the parameters for this estimator.
-    :returns: label, list of estimator dicts or None if this is
+    :returns: key, list of estimator dicts or None if this is
               a simple estimator
 
     """
@@ -64,48 +64,6 @@ def parse_params(param_dict):
             return TRANS, param_dict[TRANS]
     # it is a simple estimator - or None was passed
     return None
-
-
-def parse_pipe(yaml_dict, depth=0):
-    """ Recursively parse the dictionary returned by yaml
-        and replace the estimator nodes with actual estimator
-        instances
-    :returns: a Pipeline object
-
-    """
-    # check dict passed is not None
-    if yaml_dict is None:
-        raise ValueError('Found None entry in dictionary at depth %s' % depth)
-    # check we got a dict
-    if type(yaml_dict) is not dict:
-        raise TypeError('Expected estimator entry to be a dictionary of key - '
-                        'value pairs or to be None, instead it was of type %s'
-                        % type(yaml_dict))
-    # check if any mandatory keys are missing - we can't parse without them
-    missing = missing_keys(yaml_dict)
-    if missing:
-        key_values = dict(zip(missing, ('value',) * len(missing)))
-        raise ValueError('Dictionary at depth %s is missing the following '
-                         'mandatory key value pairs: %s'
-                         % (depth, key_values))
-    # if dict has no estimator params - suppose an empty list
-    try:
-        params = yaml_dict[ESTIMATOR_PARAMS]
-    except KeyError:
-        params = dict()
-    deeper = parse_params(params)
-    if deeper is not None:
-        label, deeper_estimators = deeper
-        for index, estimator in enumerate(deeper_estimators):
-            deeper_estimators[index] = (estimator[LABEL],
-                                        parse_pipe(estimator, depth+1))
-        params[label] = deeper_estimators
-    estimator = yaml_dict[ESTIMATOR]
-    package = yaml_dict[ESTIMATOR_PKG]
-    pkg = importlib.import_module(package)
-    est = getattr(pkg, estimator)
-    # if params is None we have passed no options
-    return est(**params) if params is not None else est()
 
 
 class Tictac(object):
@@ -130,9 +88,23 @@ class Tictac(object):
                                  "config to read!" % Tictac.CONF_ENV_VAR)
         try:
             with open(self.filename, 'r') as conf:
-                entries = yaml.load(conf.read())
-                # self.dataset = Dataset(**entries[Tictac.DATASET_LABEL])
-                self.pipe = parse_pipe(entries[PIPE])
+                # keep all estimators with labels so we can access them
+                # also we don't want to make two instances of the same thing
+                self.estimators = dict()
+                yaml_entries = yaml.load(conf.read())
+                # iterate over keys and parse all labels apart from pipeline
+                for key, val in yaml_entries.items():
+                    try:
+                        if key != PIPE:
+                            self.parse_pipe(yaml_entries[key])
+                    except ValueError as e:
+                        # if we could not parse it, it means that it wasn't
+                        # an estimator instance, append it to instance
+                        # this will probably be handy for quick settings
+                        print(e)
+                        setattr(self, key, val)
+                # now we parse pipe - labels used earlier can be used
+                self.pipe = self.parse_pipe(yaml_entries[PIPE])
         except IOError:
             raise AttributeError('%s - filename specified not found'
                                  % self.filename)
@@ -157,28 +129,85 @@ class Tictac(object):
                           for key, val in self.__dict__.items()
                           ])
 
+    def parse_pipe(self, yaml_dict, depth=0):
+        """ Recursively parse the dictionary returned by yaml
+            and replace the estimator nodes with actual estimator
+            instances.
+        :yaml_dict: the dictionary we got from loading the yaml recipe
+        :depth: how deep we are in the parse of the dictionary
+        :returns: an estimator class instance
 
-# class Dataset(BaseEstimator, TransformerMixin):
-
-#     """Docstring for Dataset. """
-
-#     def __init__(self, **kwargs):
-#         """ Initialize a dataset loader
-
-#         :**kwargs: This is a pretty abstract class :P
-
-#         """
-#         BaseEstimator.__init__(self)
-#         TransformerMixin.__init__(self)
-#         for key, val in kwargs.items():
-#             setattr(self, key, val)
-
-#     def __repr__(self):
-#         """ Lets make this python console friendly """
-#         return '\n'.join([
-#                           '%s: %s' %
-#                           ('\t%s' % key.__repr__()
-#                            if hasattr(key, '__repr__')
-#                            else key, val)
-#                           for key, val in self.__dict__.items()
-#                           ])
+        """
+        # check dict passed is not None
+        if yaml_dict is None:
+            raise ValueError('Found None entry in dictionary at depth %s'
+                             % depth)
+        # check we got a dict or a string
+        if type(yaml_dict) is not dict:
+            # if it is just a str - we lookup the label to see if we have
+            # an estimator assigned to it
+            if type(yaml_dict) is str:
+                if yaml_dict in self.estimators:
+                    return self.estimators[yaml_dict]
+                else:
+                    raise ValueError('Label "%s" that was used at depth %s '
+                                     'does not correspond to the declaration '
+                                     'of an estimator' % (yaml_dict, depth))
+            raise TypeError('Expected estimator entry at depth %s to be a '
+                            'dictionary of key - value pairs or to be None, '
+                            'instead it was of type %s' % type(yaml_dict))
+        # check if any mandatory keys are missing - we can't parse without them
+        missing = missing_keys(yaml_dict)
+        if missing:
+            key_values = dict(zip(missing, ('value',) * len(missing)))
+            raise ValueError('Dictionary at depth %s is missing the following '
+                             'mandatory key value pairs: %s'
+                             % (depth, key_values))
+        # if dict has no estimator params - suppose an empty list
+        try:
+            params = yaml_dict[ESTIMATOR_PARAMS]
+        except KeyError:
+            params = dict()
+        # parse the estimator parameter arguments
+        param_keyvals = parse_params(params)
+        # below is None if estimator has no nested estimators
+        if param_keyvals is not None:
+            # key determines whether it is a pipeline or feature union
+            key, estim_dicts = param_keyvals
+            # for each entry in the parameters - parse them
+            # the should be estimators or labels of estimators defined
+            # in the outer scope
+            for index, entry in enumerate(estim_dicts):
+                # check if we have a label
+                if type(entry) is str:
+                    label = entry
+                elif type(entry) is dict:
+                    label = entry[LABEL]
+                else:
+                    raise TypeError('Expected estimator entry to be a '
+                                    'dictionary of key - value pairs or '
+                                    'a label defined in the outer scope, but '
+                                    'label was of type %s' % type(entry))
+                # get the parsed estimator instance
+                estimator = self.parse_pipe(entry, depth+1)
+                # replace the entries in the list with a tuple
+                # label, estimator instance as expected by sklearn
+                estim_dicts[index] = (label, estimator)
+                # remember it - one instance for each label
+                # TODO add redefinition errors when there exist
+                # different estimators with same label
+                self.estimators[label] = estimator
+            params[key] = estim_dicts
+        label = yaml_dict[LABEL]
+        estimator = yaml_dict[ESTIMATOR]
+        package = yaml_dict[ESTIMATOR_PKG]
+        pkg = importlib.import_module(package)
+        est = getattr(pkg, estimator)
+        # if params is None we have passed no options
+        estimator_instance = est(**params) if params is not None else est()
+        print('adding %s' % label)
+        # remember it - one instance for each label
+        # TODO add redefinition errors when there exist
+        # different estimators with same label
+        self.estimators[label] = estimator_instance
+        return estimator_instance
