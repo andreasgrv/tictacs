@@ -1,7 +1,7 @@
 # tictacs
 Machine learning pipeline setup on steroids (on tictacs actually).
 
-# Status
+### Status
 This is a work in progress
 
 ## Description
