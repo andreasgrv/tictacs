@@ -1,6 +1,9 @@
 # tictacs
 Machine learning pipeline setup on steroids (on tictacs actually).
 
+# Status
+This is a work in progress
+
 ## Description
 This module is an attempt to move the creation of machine learning pipelines away from the code and into the configuration files where they belong. When there, they can be processed much more easily and can even be automatically generated (TODO maybe) once this intermediate step exists.
 
