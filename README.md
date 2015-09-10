@@ -34,9 +34,10 @@ After following above installation from withing the root folder do:
 ## Naming
 Influenced by a oneliner joke made by stand up comedian Milton Jones - in machine learning tasks we need tactics when tackling problems! (as well as humour to wiggle out of a tight spot when our system doesn't work).
 
-## License
+## 3 clause BSD License
 
 tictacs - simplified machine learning pipeline construction
+
 Copyright © 2015 Andreas Grivas
 All rights reserved.
 
