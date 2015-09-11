@@ -40,6 +40,7 @@ class Conjurer(object):
                                  'decision_function',
                                  'score',
                                  ]
+    MODEL_KEY = 'model'
 
     def __init__(self, recipe):
         """ Load recipe and parse it
@@ -47,6 +48,8 @@ class Conjurer(object):
         :recipe: str - filename - path to recipe to parse
 
         """
+        # remember the file we were asked to parse
+        self.recipe = recipe
         # keep all estimators with labels so we can access them
         # also we don't want to make two instances of the same thing
         self.estimators = dict()
@@ -60,7 +63,7 @@ class Conjurer(object):
 
         """
         try:
-            with open(self.filename, 'r') as conf:
+            with open(self.recipe, 'r') as conf:
                 # entries at first level of dictionary when yaml is parsed
                 root_entries = yaml.load(conf.read())
                 # iterate over keys and parse all labels apart from pipeline
@@ -77,17 +80,21 @@ class Conjurer(object):
                         # to class - will probably be handy for quick settings
                         self.parsed[key] = val
                 # now we parse pipe - labels used earlier can be used
-                self.model = self.parse_pipe(root_entries[Conjurer.PIPE])
-                self.parsed.update(self.model.__dict__())
+                model = self.parse_pipe(root_entries[Conjurer.PIPE])
+                self.parsed.update(model.__dict__)
                 # expose model methods on Tictac class
-                class_instance = self.model.__class__
+                class_instance = model.__class__
                 for key, value in class_instance.__dict__.items():
                     if key in Conjurer.INHERITED_MODEL_FUNCTIONS:
-                        self.parsed[key] = val
+                        # TODO tidy this up
+                        try:
+                            self.parsed[key] = getattr(model, key)
+                        except AttributeError:
+                            pass
                 return self.parsed
         except IOError:
             raise AttributeError('%s - filename specified not found'
-                                 % self.filename)
+                                 % self.recipe)
 
     def parse_pipe(self, yaml_dict, depth=0):
         """ Recursively parse the dictionary returned by yaml
@@ -180,6 +187,7 @@ class Conjurer(object):
         self.estimators[label] = estimator_instance
         return estimator_instance
 
+    @staticmethod
     def parse_params(param_dict):
         """ Parse parameters dictionary of estimator.
             We basically conclude what type of estimator it is by checking the
@@ -211,6 +219,7 @@ class Conjurer(object):
         # it is a simple estimator - or None was passed
         return None
 
+    @staticmethod
     def missing_keys(yaml_dict):
         """ Check whether the top level of the dictionary created from the
             yaml file has the mandatory labels needed to create the estimators
@@ -251,6 +260,17 @@ class Tictac(object):
         self.__dict__ = dict()
         self.__init__()
 
+    @classmethod
+    def from_recipe(self, filename):
+        """ Get a Tictac instance from a recipe by passing in the path to
+            the file containing the recipe
+
+        :filename: str - path to the yaml file containing the recipe
+
+        """
+        # forget current content
+        return Tictac(**Conjurer(filename).parse())
+
     def load_recipe(self, filename):
         """ Load a recipe into this instance - replaces old content
 
@@ -260,15 +280,3 @@ class Tictac(object):
         # forget current content
         self._cleanup()
         self.__init__(**Conjurer(filename).parse())
-
-
-def conjure(recipe):
-    """ Conjure a Tictac from a recipe
-
-    :recipe: str - path to the recipe to use to build the Tictac
-    :returns: Tictac instance conjured according to recipe
-
-    """
-    tictac = Tictac()
-    tictac.load_recipe(recipe)
-    return tictac
