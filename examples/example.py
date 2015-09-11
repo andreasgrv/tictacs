@@ -19,7 +19,7 @@ if __name__ == '__main__':
              ]
 
     print('Creating model...')
-    tictac = Tictac(recipe)
+    tictac = Tictac.from_recipe(recipe)
     print('Fitting model...')
     tictac.fit(texts, [0, 1, 1, 1])
     print('Predicting with model...')
