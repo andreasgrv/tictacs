@@ -1,135 +1,93 @@
-import os
 import yaml
 import inspect
 import importlib
 from wrappers import FunctionWrapper
 
-# Labels we use in yaml file.
-PIPE = 'pipeline'
-LABEL = 'label'
-STEPS = 'steps'
-TRANS = 'transformer_list'
-ESTIMATOR = 'estimator'
-ESTIMATOR_PKG = 'estimator_pkg'
-ESTIMATOR_PARAMS = 'estimator_params'
 
-# labels we need:
-# LABEL - a name for it in order to be able to refer to it afterwards.
-# ESTIMATOR - the package the estimator class is in in order to load it
-# ESTIMATOR_PKG - the name of the estimator class in order to instantiate it
-# estimator params is considered to be empty if none it isnt specified
-MANDATORY_ESTIMATOR_LABELS = [
-                              LABEL,
-                              ESTIMATOR,
-                              ESTIMATOR_PKG,
-                              ]
+class Conjurer(object):
 
+    """ Conjures recipes to create Tictacs. Also known as a parser."""
 
-def missing_keys(yaml_dict):
-    """ Check whether the top level of the dictionary created from the
-        yaml file has the mandatory labels needed to create the estimators
+    # Labels we use in yaml file.
+    PIPE = 'pipeline'
+    LABEL = 'label'
+    STEPS = 'steps'
+    TRANS = 'transformer_list'
+    ESTIMATOR = 'estimator'
+    ESTIMATOR_PKG = 'estimator_pkg'
+    ESTIMATOR_PARAMS = 'estimator_params'
 
-    :yaml_dict: A level of the dictionary representing an estimator node
-    :returns: list - missing mandatory keys of yaml_dict - empty list if none
+    # labels we need:
+    # LABEL - name for it in order to be able to refer to it afterwards.
+    # ESTIMATOR - package the estimator class is in in order to load it
+    # ESTIMATOR_PKG - name of the estimator class - needed to instantiate it
+    # estimator params is considered to be empty if none it isnt specified
+    MANDATORY_ESTIMATOR_LABELS = [
+                                  LABEL,
+                                  ESTIMATOR,
+                                  ESTIMATOR_PKG,
+                                  ]
 
-    """
-    return [key for key in MANDATORY_ESTIMATOR_LABELS
-            if key not in yaml_dict.keys()]
+    INHERITED_MODEL_FUNCTIONS = [
+                                 'fit',
+                                 'fit_transform',
+                                 'fit_predict',
+                                 'transform',
+                                 'inverse_transform',
+                                 'predict',
+                                 'predict_proba',
+                                 'predict_log_proba',
+                                 'decision_function',
+                                 'score',
+                                 ]
 
+    def __init__(self, recipe):
+        """ Load recipe and parse it
 
-def parse_params(param_dict):
-    """ Parse parameters dictionary of estimator.
-        We basically conclude what type of estimator it is by checking the
-        parameters.
-        Pipeline estimators have a steps entry.
-        FeatureUnion estimators have a transform_list entry.
-        All others are handled as simple estimators, that don't have
-        further nested estimators inside them.
-    :param_dict: A dictionary containing the parameters for this estimator.
-    :returns: key, list of estimator dicts or None if this is
-              a simple estimator
+        :recipe: str - filename - path to recipe to parse
 
-    """
-    if param_dict is not None:
-        # check if this is a pipeline or feature union - they contain steps
-        # and tranformer_list accordingly
-        if type(param_dict) is not dict:
-            raise TypeError('Expected %s to be a dictionary of key - '
-                            'value pairs or to be None, instead it was of '
-                            'type %s' % (ESTIMATOR_PARAMS, type(param_dict)))
-        param_keys = param_dict.keys()
-        # if its a pipeline
-        if STEPS in param_keys:
-            return STEPS, param_dict[STEPS]
-        # if its a feature union
-        elif TRANS in param_keys:
-            return TRANS, param_dict[TRANS]
-    # it is a simple estimator - or None was passed
-    return None
+        """
+        # keep all estimators with labels so we can access them
+        # also we don't want to make two instances of the same thing
+        self.estimators = dict()
+        # keep parsed definitions that we want to create object with
+        self.parsed = dict()
 
+    def parse(self):
+        """ parse using this conjurer. Estimator definitions are converted
+            to estimator instances while other labeled entries are kept as is
+        :returns: Dictionary of parsed content.
 
-class Tictac(object):
-
-    """ Loader for the yaml file - perform checking and instantiate content """
-    CONF_ENV_VAR = 'TICTAC_CONF'
-    # Pipe API entries we expect.
-    DATASET_LABEL = 'dataset'
-
-    def __init__(self, filename=None):
-        """ Initialize a tictac from file with its configuration """
-        if filename:
-            self.filename = filename
-        else:
-            try:
-                # if filename was not specified - attempt reading
-                # environment variable
-                self.filename = os.environ[Tictac.CONF_ENV_VAR]
-            except KeyError:
-                raise ValueError("filename not specified and %s environment "
-                                 "variable is not set - do not know what "
-                                 "config to read!" % Tictac.CONF_ENV_VAR)
+        """
         try:
             with open(self.filename, 'r') as conf:
-                # keep all estimators with labels so we can access them
-                # also we don't want to make two instances of the same thing
-                self.estimators = dict()
-                yaml_entries = yaml.load(conf.read())
+                # entries at first level of dictionary when yaml is parsed
+                root_entries = yaml.load(conf.read())
                 # iterate over keys and parse all labels apart from pipeline
-                for key, val in yaml_entries.items():
+                # this caches them and makes them available to be accessed
+                # in pipeline using their label instead of repeating the
+                # whole definition
+                for key, val in root_entries.items():
                     try:
-                        if key != PIPE:
-                            self.parse_pipe(yaml_entries[key])
-                    except ValueError as e:
+                        if key != Conjurer.PIPE:
+                            self.parse_pipe(root_entries[key])
+                    except ValueError:
                         # if we could not parse it, it means that it wasn't
-                        # an estimator instance, append it to instance
-                        # this will probably be handy for quick settings
-                        print(e)
-                        setattr(self, key, val)
+                        # an estimator instance, append it to stuff we pass
+                        # to class - will probably be handy for quick settings
+                        self.parsed[key] = val
                 # now we parse pipe - labels used earlier can be used
-                self.pipe = self.parse_pipe(yaml_entries[PIPE])
+                self.model = self.parse_pipe(root_entries[Conjurer.PIPE])
+                self.parsed.update(self.model.__dict__())
+                # expose model methods on Tictac class
+                class_instance = self.model.__class__
+                for key, value in class_instance.__dict__.items():
+                    if key in Conjurer.INHERITED_MODEL_FUNCTIONS:
+                        self.parsed[key] = val
+                return self.parsed
         except IOError:
             raise AttributeError('%s - filename specified not found'
                                  % self.filename)
-
-    def __getattr__(self, name):
-        """ Make parsed pipe attributes accessible as if they were ours
-
-        :name: The attribute to get
-        :returns: Access the attribute from pipe instance if it wasnt
-                  found in our own
-
-        """
-        return getattr(self.pipe, name)
-
-    def __repr__(self):
-        """ Lets make this python console friendly """
-        return '\n'.join([
-                          '%s: %s' %
-                          ('\t%s' % key.__repr__()
-                           if hasattr(key, '__repr__')
-                           else key, val)
-                          for key, val in self.__dict__.items()
-                          ])
 
     def parse_pipe(self, yaml_dict, depth=0):
         """ Recursively parse the dictionary returned by yaml
@@ -159,7 +117,7 @@ class Tictac(object):
                             'dictionary of key - value pairs or to be None, '
                             'instead it was of type %s' % type(yaml_dict))
         # check if any mandatory keys are missing - we can't parse without them
-        missing = missing_keys(yaml_dict)
+        missing = Conjurer.missing_keys(yaml_dict)
         if missing:
             key_values = dict(zip(missing, ('value',) * len(missing)))
             raise ValueError('Dictionary at depth %s is missing the following '
@@ -167,11 +125,14 @@ class Tictac(object):
                              % (depth, key_values))
         # if dict has no estimator params - suppose an empty list
         try:
-            params = yaml_dict[ESTIMATOR_PARAMS]
+            params = yaml_dict[Conjurer.ESTIMATOR_PARAMS]
+            # make sure params is not None
+            if params is None:
+                params = dict()
         except KeyError:
             params = dict()
         # parse the estimator parameter arguments
-        param_keyvals = parse_params(params)
+        param_keyvals = Conjurer.parse_params(params)
         # below is None if estimator has no nested estimators
         if param_keyvals is not None:
             # key determines whether it is a pipeline or feature union
@@ -184,7 +145,7 @@ class Tictac(object):
                 if type(entry) is str:
                     label = entry
                 elif type(entry) is dict:
-                    label = entry[LABEL]
+                    label = entry[Conjurer.LABEL]
                 else:
                     raise TypeError('Expected estimator entry to be a '
                                     'dictionary of key - value pairs or '
@@ -200,9 +161,9 @@ class Tictac(object):
                 # different estimators with same label
                 self.estimators[label] = estimator
             params[key] = estim_dicts
-        label = yaml_dict[LABEL]
-        estimator = yaml_dict[ESTIMATOR]
-        package = yaml_dict[ESTIMATOR_PKG]
+        label = yaml_dict[Conjurer.LABEL]
+        estimator = yaml_dict[Conjurer.ESTIMATOR]
+        package = yaml_dict[Conjurer.ESTIMATOR_PKG]
         pkg = importlib.import_module(package)
         est = getattr(pkg, estimator)
         # if what we imported is a class - we suppose it is an estimator
@@ -218,3 +179,96 @@ class Tictac(object):
         # different estimators with same label
         self.estimators[label] = estimator_instance
         return estimator_instance
+
+    def parse_params(param_dict):
+        """ Parse parameters dictionary of estimator.
+            We basically conclude what type of estimator it is by checking the
+            parameters.
+            Pipeline estimators have a steps entry.
+            FeatureUnion estimators have a transform_list entry.
+            All others are handled as simple estimators, that don't have
+            further nested estimators inside them.
+        :param_dict: A dictionary containing the parameters for this estimator.
+        :returns: key, list of estimator dicts or None if this is
+                  a simple estimator
+
+        """
+        if param_dict is not None:
+            # check if this is a pipeline or feature union - they contain steps
+            # and tranformer_list accordingly
+            if type(param_dict) is not dict:
+                raise TypeError('Expected %s to be a dictionary of key - '
+                                'value pairs or to be None, instead it was of '
+                                'type %s' % (Conjurer.ESTIMATOR_PARAMS,
+                                             type(param_dict)))
+            param_keys = param_dict.keys()
+            # if its a pipeline
+            if Conjurer.STEPS in param_keys:
+                return Conjurer.STEPS, param_dict[Conjurer.STEPS]
+            # if its a feature union
+            elif Conjurer.TRANS in param_keys:
+                return Conjurer.TRANS, param_dict[Conjurer.TRANS]
+        # it is a simple estimator - or None was passed
+        return None
+
+    def missing_keys(yaml_dict):
+        """ Check whether the top level of the dictionary created from the
+            yaml file has the mandatory labels needed to create the estimators
+
+        :yaml_dict: A level of the dictionary representing an estimator node
+        :returns: list - missing mandatory keys of yaml_dict
+                  empty list if none
+
+        """
+        return [key for key in Conjurer.MANDATORY_ESTIMATOR_LABELS
+                if key not in yaml_dict.keys()]
+
+
+class Tictac(object):
+
+    """ Loader for the yaml file - perform checking and instantiate content """
+
+    def __init__(self, **kwargs):
+        """ Initialize a tictac - maintain same api as sklearn to avoid
+            compatibility problems."""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        """ Lets make this python console friendly """
+        return '\n'.join([
+                          '%s: %s' %
+                          ('\t%s' % key.__repr__()
+                           if hasattr(key, '__repr__')
+                           else key, val)
+                          for key, val in self.__dict__.items()
+                          ])
+
+    def _cleanup(self):
+        """ Clean up this instance - remove all attributes
+
+        """
+        self.__dict__ = dict()
+        self.__init__()
+
+    def load_recipe(self, filename):
+        """ Load a recipe into this instance - replaces old content
+
+        :filename: str - path to the yaml file containing the recipe
+
+        """
+        # forget current content
+        self._cleanup()
+        self.__init__(**Conjurer(filename).parse())
+
+
+def conjure(recipe):
+    """ Conjure a Tictac from a recipe
+
+    :recipe: str - path to the recipe to use to build the Tictac
+    :returns: Tictac instance conjured according to recipe
+
+    """
+    tictac = Tictac()
+    tictac.load_recipe(recipe)
+    return tictac
