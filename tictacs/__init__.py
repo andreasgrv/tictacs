@@ -226,6 +226,13 @@ def create_tac(base):
         """ Shell class for an estimator of any type. Inherits constructor
             from base class. Base class is found from recipe. """
 
+        def __reduce__(self):
+            """ Make this dynamically inherited class picklable
+            :returns: tuple
+
+            """
+            return(base.__new__, (base,), self.__dict__)
+
         def __repr__(self):
             """ Lets make this python console friendly """
             return '\n'.join([
