@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from tictacs import Tictac
+from tictacs import from_recipe
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='A tester of recipes for tic tacs')
@@ -19,7 +19,7 @@ if __name__ == '__main__':
              ]
 
     print('Creating model...')
-    tictac = Tictac.from_recipe(recipe)
+    tictac = from_recipe(recipe)
     print('Fitting model...')
     tictac.fit(texts, [0, 1, 1, 1])
     print('Predicting with model...')
