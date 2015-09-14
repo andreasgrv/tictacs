@@ -28,20 +28,6 @@ class Conjurer(object):
                                   ESTIMATOR_PKG,
                                   ]
 
-    INHERITED_MODEL_FUNCTIONS = [
-                                 'fit',
-                                 'fit_transform',
-                                 'fit_predict',
-                                 'transform',
-                                 'inverse_transform',
-                                 'predict',
-                                 'predict_proba',
-                                 'predict_log_proba',
-                                 'decision_function',
-                                 'score',
-                                 ]
-    MODEL_KEY = 'model'
-
     def __init__(self, recipe):
         """ Load recipe and parse it
 
@@ -55,6 +41,8 @@ class Conjurer(object):
         self.estimators = dict()
         # keep parsed definitions that we want to create object with
         self.parsed = dict()
+        # keep what class the output of parse should be
+        self.class_type = None
 
     def parse(self):
         """ parse using this conjurer. Estimator definitions are converted
@@ -81,16 +69,10 @@ class Conjurer(object):
                         self.parsed[key] = val
                 # now we parse pipe - labels used earlier can be used
                 model = self.parse_pipe(root_entries[Conjurer.PIPE])
-                self.parsed.update(model.__dict__)
-                # expose model methods on Tictac class
-                class_instance = model.__class__
-                for key, value in class_instance.__dict__.items():
-                    if key in Conjurer.INHERITED_MODEL_FUNCTIONS:
-                        # TODO tidy this up
-                        try:
-                            self.parsed[key] = getattr(model, key)
-                        except AttributeError:
-                            pass
+                # keep class name
+                self.class_type = model.__class__
+                # keep data of instance
+                self.parsed.update(model.get_params(deep=False))
                 return self.parsed
         except IOError:
             raise AttributeError('%s - filename specified not found'
@@ -233,50 +215,57 @@ class Conjurer(object):
                 if key not in yaml_dict.keys()]
 
 
-class Tictac(object):
+def create_tac(base):
+    """ Dynamically choose what class the Tictac should inherit from.
+    :returns: The Tictac class that extends base class
 
-    """ Loader for the yaml file - perform checking and instantiate content """
+    """
 
-    def __init__(self, **kwargs):
-        """ Initialize a tictac - maintain same api as sklearn to avoid
-            compatibility problems."""
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    class Tictac(base):
 
-    def __repr__(self):
-        """ Lets make this python console friendly """
-        return '\n'.join([
-                          '%s: %s' %
-                          ('\t%s' % key.__repr__()
-                           if hasattr(key, '__repr__')
-                           else key, val)
-                          for key, val in self.__dict__.items()
-                          ])
+        """ Shell class for an estimator of any type. Inherits constructor
+            from base class. Base class is found from recipe. """
 
-    def _cleanup(self):
-        """ Clean up this instance - remove all attributes
+        def __repr__(self):
+            """ Lets make this python console friendly """
+            return '\n'.join([
+                              '%s: %s' %
+                              ('\t%s' % key.__repr__()
+                               if hasattr(key, '__repr__')
+                               else key, val)
+                              for key, val in self.__dict__.items()
+                              ])
 
-        """
-        self.__dict__ = dict()
-        self.__init__()
+        def _cleanup(self):
+            """ Clean up this instance - remove all attributes
 
-    @classmethod
-    def from_recipe(self, filename):
-        """ Get a Tictac instance from a recipe by passing in the path to
-            the file containing the recipe
+            """
+            self.__dict__ = dict()
+            self.__init__()
 
-        :filename: str - path to the yaml file containing the recipe
+        def load_recipe(self, filename):
+            """ Load a recipe into this instance - replaces old content
 
-        """
-        # forget current content
-        return Tictac(**Conjurer(filename).parse())
+            :filename: str - path to the yaml file containing the recipe
 
-    def load_recipe(self, filename):
-        """ Load a recipe into this instance - replaces old content
+            """
+            # forget current content
+            self._cleanup()
+            self.__init__(**Conjurer(filename).parse())
 
-        :filename: str - path to the yaml file containing the recipe
+    return Tictac
 
-        """
-        # forget current content
-        self._cleanup()
-        self.__init__(**Conjurer(filename).parse())
+
+def from_recipe(filename):
+    """ Get a Tictac instance from a recipe by passing in the path to
+        the file containing the recipe
+
+    :filename: str - path to the yaml file containing the recipe
+
+    """
+    # create a parser
+    parser = Conjurer(filename)
+    entries = parser.parse()
+    class_type = parser.class_type
+    tictac_class = create_tac(class_type)
+    return tictac_class(**entries)

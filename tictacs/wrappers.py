@@ -1,4 +1,5 @@
 """ wrappers for functions to components """
+# TODO - move thes to extend class depending on case
 
 
 class FunctionWrapper(object):
@@ -27,6 +28,22 @@ class FunctionWrapper(object):
         self.function(X, *self.args, **self.kwargs)
         return X
 
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+        Parameters
+        ----------
+        deep: boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        out['function'] = self.function
+        return out
+
 
 class PrintWrapper(object):
 
@@ -46,3 +63,17 @@ class PrintWrapper(object):
         for each in X:
             print(each)
         return X
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+        Parameters
+        ----------
+        deep: boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        return dict()
