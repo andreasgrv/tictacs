@@ -1,4 +1,5 @@
 import yaml
+import copy
 import inspect
 import importlib
 from wrappers import FunctionWrapper
@@ -13,6 +14,7 @@ class Conjurer(object):
     LABEL = 'label'
     STEPS = 'steps'
     TRANS = 'transformer_list'
+    GRID = 'param_grid'
     ESTIMATOR = 'estimator'
     ESTIMATOR_PKG = 'estimator_pkg'
     ESTIMATOR_PARAMS = 'estimator_params'
@@ -62,7 +64,7 @@ class Conjurer(object):
                     try:
                         if key != Conjurer.PIPE:
                             self.parse_pipe(root_entries[key])
-                    except ValueError:
+                    except (ValueError, TypeError):
                         # if we could not parse it, it means that it wasn't
                         # an estimator instance, append it to stuff we pass
                         # to class - will probably be handy for quick settings
@@ -104,7 +106,8 @@ class Conjurer(object):
                                      'of an estimator' % (yaml_dict, depth))
             raise TypeError('Expected estimator entry at depth %s to be a '
                             'dictionary of key - value pairs or to be None, '
-                            'instead it was of type %s' % type(yaml_dict))
+                            'instead it was of type %s' % (depth,
+                                                           type(yaml_dict)))
         # check if any mandatory keys are missing - we can't parse without them
         missing = Conjurer.missing_keys(yaml_dict)
         if missing:
@@ -215,16 +218,18 @@ class Conjurer(object):
                 if key not in yaml_dict.keys()]
 
 
-def create_tac(base):
+def create_tac(base, params):
     """ Dynamically choose what class the Tictac should inherit from.
     :returns: The Tictac class that extends base class
 
     """
-
+    
     class Tictac(base):
 
         """ Shell class for an estimator of any type. Inherits constructor
             from base class. Base class is found from recipe. """
+
+        # __init__ is overrided later in sklearn case!
 
         def __reduce__(self):
             """ Make this dynamically inherited class picklable
@@ -260,6 +265,30 @@ def create_tac(base):
             self._cleanup()
             self.__init__(**Conjurer(filename).parse())
 
+    # if base is sklearn
+    # we need a constructor with all params in the definition
+    # in order to be compatible - (check the clone function to see why)
+    if hasattr(base, '_get_param_names'):
+        # keep paramaters that we will pass to base constructor
+        super_params = dict()
+        for key, value in params.items():
+            if key in base._get_param_names():
+                super_params[key] = value
+
+        # TODO - think about injection
+        # meta meta programming - define our constructor
+        init_str = ('def init_wrapper(self%s):\n'
+                    '    %s\n'
+                    '    if super_params:\n'
+                    '        super(Tictac, self).__init__(%s)') \
+            % (', ' + ', '.join('%s' % key for key in params.keys()) if params.keys() else '',
+               '\n    '.join('self.%s = %s' % (key, key)
+                             for key in params.keys()),
+               (', '.join('%s=%s' % (key, key) for key in super_params.keys()))
+               )
+        # define our function
+        exec init_str in locals()
+        setattr(Tictac, '__init__', locals()['init_wrapper'])
     return Tictac
 
 
@@ -274,5 +303,5 @@ def from_recipe(filename):
     parser = Conjurer(filename)
     entries = parser.parse()
     class_type = parser.class_type
-    tictac_class = create_tac(class_type)
+    tictac_class = create_tac(class_type, entries)
     return tictac_class(**entries)
