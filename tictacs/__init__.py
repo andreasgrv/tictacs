@@ -1,5 +1,4 @@
 import yaml
-import copy
 import inspect
 import importlib
 from wrappers import FunctionWrapper
@@ -281,7 +280,10 @@ def create_tac(base, params):
                     '    %s\n'
                     '    if super_params:\n'
                     '        super(Tictac, self).__init__(%s)') \
-            % (', ' + ', '.join('%s' % key for key in params.keys()) if params.keys() else '',
+            % (', ' + ', '.join('%s' % key
+                                for key in params.keys())
+                if params.keys()
+                else '',
                '\n    '.join('self.%s = %s' % (key, key)
                              for key in params.keys()),
                (', '.join('%s=%s' % (key, key) for key in super_params.keys()))
