@@ -17,6 +17,7 @@ class Conjurer(object):
     ESTIMATOR = 'estimator'
     ESTIMATOR_PKG = 'estimator_pkg'
     ESTIMATOR_PARAMS = 'estimator_params'
+    RECIPE_LABEL = 'recipe'
 
     # labels we need:
     # LABEL - name for it in order to be able to refer to it afterwards.
@@ -59,6 +60,7 @@ class Conjurer(object):
                 # this caches them and makes them available to be accessed
                 # in pipeline using their label instead of repeating the
                 # whole definition
+                self.parsed[Conjurer.RECIPE_LABEL] = self.recipe
                 for key, val in root_entries.items():
                     try:
                         if key != Conjurer.PIPE:
@@ -222,7 +224,7 @@ def create_tac(base, params):
     :returns: The Tictac class that extends base class
 
     """
-    
+
     class Tictac(base):
 
         """ Shell class for an estimator of any type. Inherits constructor
@@ -241,7 +243,7 @@ def create_tac(base, params):
             """ Lets make this python console friendly """
             return '\n'.join([
                               '%s: %s' %
-                              ('\t%s' % key.__repr__()
+                              ('%s' % key.__repr__()
                                if hasattr(key, '__repr__')
                                else key, val)
                               for key, val in self.__dict__.items()
