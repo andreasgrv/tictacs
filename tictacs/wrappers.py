@@ -15,6 +15,13 @@ class FunctionWrapper(object):
         self.args = args
         self.kwargs = kwargs
 
+    def __repr__(self):
+        """ User friendly string version
+        :returns: str representation
+
+        """
+        return '%(__class__)s wrapping function %(function)s\n' % self.__dict__
+
     def fit(self, X, y=None):
         return self
 
@@ -54,6 +61,13 @@ class PrintWrapper(object):
     def __init__(self):
         """ Initialize the wrapper. """
         pass
+
+    def __repr__(self):
+        """ User friendly string version
+        :returns: str representation
+
+        """
+        return '%(__class__)s instance' % self.__dict__
 
     def fit(self, X, y=None):
         return self
