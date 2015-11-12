@@ -25,7 +25,7 @@ class FunctionWrapper(object):
         :returns: A tranformation of X implemented in function
 
         """
-        self.function(X, *self.args, **self.kwargs)
+        X = self.function(X, *self.args, **self.kwargs)
         return X
 
     def get_params(self, deep=True):
