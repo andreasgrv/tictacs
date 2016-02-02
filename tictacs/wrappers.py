@@ -93,10 +93,12 @@ class Sentinel(object):
             elif hasattr(X, '__len__'):
                 try:
                     first_elem = X[0]
-                    if hasattr(first_elem, '__iter__'):
+                    if isinstance(first_elem, str):
+                        self.logger.info('shape: (%s, 1) - 1d list' % len(X))
+                    else:
                         self.logger.info('shape: (%s, %s)' % (len(X),
                                                               len(first_elem)))
-                except KeyError:
+                except (KeyError, TypeError, AttributeError):
                     self.logger.info('shape: (%s, 1) - 1d list' % len(X))
             else:
                 self.logger.error(
