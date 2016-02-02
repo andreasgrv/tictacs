@@ -4,6 +4,12 @@ Machine learning pipeline setup on steroids (on tictacs actually).
 ### Status
 This is a work in progress
 
+#### Versions
+
+* v0.0.1  First version available - simple yaml parsing and conversion to a sklearn pipeline. Wraps pipeline in tictac object.
+* v0.0.2  Minor changes in what wrapping function does, it now returns copies instead of modifying inplace.
+* v0.0.3  Supports adding sentries to the pipeline for inspection purposes - eg: printing output, printing size of output and type of output at a certain point in the pipeline. Uses logging.
+
 ## Description
 This module is an attempt to move the creation of machine learning pipelines away from the code and into the configuration files where they belong. When there, they can be processed much more easily and can even be automatically generated (TODO maybe) once this intermediate step exists.
 
@@ -29,9 +35,15 @@ The pipeline creation is based on the the abstraction mechanism used in sklearn 
 ## Examples
 
 After following above installation from withing the root folder do:
-> python examples/example.py -r recipes/example.yaml
+
+>
+	python examples/example.py -r recipes/example.yaml
+
+
 To see an example with sentinel usage check out
-> python examples/example.py -r recipes/sentinel.yaml
+
+> 
+	python examples/example.py -r recipes/sentinel.yaml
 
 ## Naming
 Influenced by a oneliner joke made by stand up comedian Milton Jones - in machine learning tasks we need tactics when tackling problems! (as well as humour to wiggle out of a tight spot when our system doesn't work).

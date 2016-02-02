@@ -8,7 +8,7 @@ setup(
         author_email='andreasgrv@gmail.com',
         description='Machine learning pipeline creation from config files',
         url='https://github.com/andreasgrv/tictacs',
-        download_url='https://github.com/andreasgrv/tictacs/tarball/0.0.1',
+        download_url='https://github.com/andreasgrv/tictacs/tarball/0.0.3',
         license='BSD',
         keywords=['machine learning', 'pipeline', 'config'],
         classifiers=[],
