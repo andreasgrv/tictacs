@@ -27,7 +27,7 @@ pipeline:
         estimator: Sentinel
         estimator_pkg: tictacs.wrappers
         estimator_params:
-          # only print first row of classifier input
+          # only print second row of classifier input
           # other options can be disabled if you like
           x: 1
           # change y to number to see specific element
