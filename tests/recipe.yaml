@@ -1,0 +1,14 @@
+pipeline:
+  label: main
+  estimator: Pipeline
+  estimator_pkg: sklearn.pipeline
+  estimator_params:
+    steps:
+      - label: printer2
+        estimator: Sentinel
+        estimator_pkg: tictacs.wrappers
+        estimator_params:
+      - label: printer1
+        estimator: Sentinel
+        estimator_pkg: tictacs.wrappers
+        estimator_params:
