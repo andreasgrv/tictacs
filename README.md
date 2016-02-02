@@ -30,6 +30,8 @@ The pipeline creation is based on the the abstraction mechanism used in sklearn 
 
 After following above installation from withing the root folder do:
 > python examples/example.py -r recipes/example.yaml
+To see an example with sentinel usage check out
+> python examples/example.py -r recipes/sentinel.yaml
 
 ## Naming
 Influenced by a oneliner joke made by stand up comedian Milton Jones - in machine learning tasks we need tactics when tackling problems! (as well as humour to wiggle out of a tight spot when our system doesn't work).

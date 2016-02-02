@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
         name='tictacs',
         packages=['tictacs'],
-        version='0.0.1',
+        version='0.0.3',
         author='Andreas Grivas',
         author_email='andreasgrv@gmail.com',
         description='Machine learning pipeline creation from config files',

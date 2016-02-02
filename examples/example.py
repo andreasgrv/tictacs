@@ -1,5 +1,10 @@
 from argparse import ArgumentParser
 from tictacs import from_recipe
+import logging
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+log.addHandler(logging.StreamHandler())
+
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='A tester of recipes for tic tacs')
