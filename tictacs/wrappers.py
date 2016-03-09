@@ -1,8 +1,8 @@
 """ wrappers for functions to components """
 import logging
+from sklearn.base import BaseEstimator, TransformerMixin
 
-
-class FunctionWrapper(object):
+class FunctionWrapper(BaseEstimator, TransformerMixin):
 
     """ Wrapper for stateless transformer. Sometimes we dont need
         information about the data in order to transform it, so this
