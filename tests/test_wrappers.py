@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 import logging
-from tictacs import from_recipe
+# from tictacs import from_recipe
 from tictacs.wrappers import FunctionWrapper
 
 recipe = 'recipe.yaml'
@@ -16,27 +16,27 @@ def add_five(X):
     return X+5
 
 
-class TestSentinel(object):
+# class TestSentinel(object):
 
-    """no fancy checking yet, just assert we got no exceptions"""
+#     """no fancy checking yet, just assert we got no exceptions"""
 
-    def test_1dlist(self):
-        """test with one dimensional list"""
-        l = [1, 2, 3, 4, 5]
-        tictac = from_recipe(recipe)
-        tictac.fit(l, l)
+#     def test_1dlist(self):
+#         """test with one dimensional list"""
+#         l = [1, 2, 3, 4, 5]
+#         tictac = from_recipe(recipe)
+#         tictac.fit(l, l)
 
-    def test_2dlist(self):
-        """test with one dimensional list"""
-        l = [[1, 2, 3, 4, 5], [2, 6, 10, 20]]
-        tictac = from_recipe(recipe)
-        tictac.fit(l, l)
+#     def test_2dlist(self):
+#         """test with one dimensional list"""
+#         l = [[1, 2, 3, 4, 5], [2, 6, 10, 20]]
+#         tictac = from_recipe(recipe)
+#         tictac.fit(l, l)
 
-    def test_2dlist_strings(self):
-        """test with one dimensional list"""
-        l = [['my', 'dog', 'is', 'blue'], ['my', 'cat', 'is', 'green']]
-        tictac = from_recipe(recipe)
-        tictac.fit(l, l)
+#     def test_2dlist_strings(self):
+#         """test with one dimensional list"""
+#         l = [['my', 'dog', 'is', 'blue'], ['my', 'cat', 'is', 'green']]
+#         tictac = from_recipe(recipe)
+#         tictac.fit(l, l)
 
 
 class TestFunctionWrapper(object):
