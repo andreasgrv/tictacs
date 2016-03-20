@@ -1,2 +1,1 @@
-scikit_learn==0.16.1
 PyYAML==3.11

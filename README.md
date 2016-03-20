@@ -1,5 +1,5 @@
 # tictacs
-Machine learning pipeline setup on steroids (on tictacs actually).
+Machine learning pipeline setup on tictacs.
 
 ### Status
 This is a work in progress
@@ -31,6 +31,10 @@ The pipeline creation is based on the the abstraction mechanism used in sklearn 
 - cd tictacs
 - pip install -r requirements.txt
 - pip install --user -e .
+
+If you want to run the examples you will need to install scikit learn (numpy and scipy are sklearn dependencies):
+
+- pip install numpy scipy scikit-learn
 
 ## Examples
 

@@ -13,7 +13,6 @@ setup(
         keywords=['machine learning', 'pipeline', 'config'],
         classifiers=[],
         install_requires=[
-            'scikit-learn',
             'pyyaml',
             ],
         setup_requires=['pytest-runner'],
