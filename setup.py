@@ -16,4 +16,6 @@ setup(
             'scikit-learn',
             'pyyaml',
             ],
+        setup_requires=['pytest-runner'],
+        test_requires=['pytest']
         )
