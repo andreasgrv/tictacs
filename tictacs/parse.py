@@ -299,7 +299,7 @@ def create_tac(base, params):
                (', '.join('%s=%s' % (key, key) for key in super_params.keys()))
                )
         # define our function
-        exec init_str in locals()
+        exec(init_str, locals())
         setattr(Tictac, '__init__', locals()['init_wrapper'])
     return Tictac
 
