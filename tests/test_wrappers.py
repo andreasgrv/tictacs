@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import pytest
 import logging
 # from tictacs import from_recipe
@@ -65,8 +66,10 @@ class TestFunctionWrapper(object):
         print(fw)
         out, err = capfd.readouterr()
         assert err == ''
-        with pytest.raises(TypeError):
-            tmpdir.join('exemplar').dump(fw)
+        # pickling of class functions works ok for py3.4
+        if sys.version_info < (3, 4):
+            with pytest.raises(TypeError):
+                tmpdir.join('exemplar').dump(fw)
 
     def unpicklable_func(self, X):
         """i am unpiclable as a member function
