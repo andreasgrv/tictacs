@@ -78,6 +78,8 @@ class Conjurer(object):
                         # to class - will probably be handy for quick settings
                         self.parsed[key] = val
                         self.logger.info('Added entry %s..' % key)
+                        self.logger.warning('Added entry %s has been '
+                                            'interpreted as data' % key)
                 # now we parse pipe - labels used earlier can be used
                 model = self.parse_pipe(root_entries[Conjurer.PIPE])
                 # keep class name
