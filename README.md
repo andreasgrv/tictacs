@@ -2,6 +2,8 @@
 Machine learning pipeline setup on tictacs.
 
 ### Status
+[![Build Status](https://api.travis-ci.org/andreasgrv/tictacs.svg?branch=master)](https://travis-ci.org/andreasgrv/tictacs)
+
 This is a work in progress
 
 #### Versions
